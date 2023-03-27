@@ -1,8 +1,15 @@
+use clap::Parser;
 use std::str::from_utf8;
 use std::thread;
 use std::net::{TcpListener, TcpStream};
 use std::io::{Write, Read};
 use std::time::Duration;
+
+#[derive(Parser)]
+struct Arguments {
+    /// Address to bind the server to [address:port]
+    bind_address: String,
+}
 
 fn handle_client(mut connection: TcpStream) -> Result<(), std::io::Error> {
     let mut client_data = [0 as u8; 1024];
@@ -23,26 +30,14 @@ fn handle_client(mut connection: TcpStream) -> Result<(), std::io::Error> {
 }
 
 fn main() {
-    // Parse server address from CLI arguments
-    let mut address = String::new();
-
-    let ip = match std::env::args().nth(2) {
-        Some(address) => address, 
-        None => "0.0.0.0".to_string(),
-    };
-    let port = match std::env::args().nth(1) {
-        Some(port) => port, 
-        None => "3333".to_string(),
-    };
-    address.push_str(ip.as_str());
-    address.push(':');
-    address.push_str(port.as_str());
+    // Parse arguments
+    let args = Arguments::parse();
 
     // Start TCP server
-    let listener = TcpListener::bind(address).unwrap();
+    let listener = TcpListener::bind(&args.bind_address).unwrap();
 
     // Accept connections and process them, spawning a new thread for each one
-    println!("Server listening on port 3333");
+    println!("Server listening on {}", args.bind_address);
     for connection in listener.incoming() {
         match connection {
             Ok(connection) => {
