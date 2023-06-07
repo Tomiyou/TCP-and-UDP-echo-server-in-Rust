@@ -17,6 +17,8 @@ fn read_server(mut connection: TcpStream) -> Result<(), std::io::Error> {
         let bytes_read = connection.read(&mut client_data)?;
         if bytes_read > 0 {
             println!("Client data: {}", from_utf8(&client_data).unwrap());
+        } else {
+            return Ok(())
         }
     }
 }
