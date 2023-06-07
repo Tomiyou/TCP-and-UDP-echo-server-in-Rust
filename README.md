@@ -5,11 +5,16 @@ Client sends user input of up to 1024 bytes to the server, which responds with a
 
 Intended for compilation on x86_64 machines. Built for both x86_64 (statically linked) and cross-compiled to armv7 (statically linked).
 
+1. Install `cross` for cross compilation (uses docker under the hood)
+```
+cargo install cross
+```
+
+2. Build binaries
 ```
 # Compile for x86_64
-RUSTFLAGS='-C target-feature=+crt-static' cargo build --release --target x86_64-unknown-linux-gnu
+cross build --release --target x86_64-unknown-linux-gnu
 
-# Cross-compile to armv7 (using cargo cross/docker)
-cargo install cross
+# Cross-compile to armv7
 cross build --release --target armv7-unknown-linux-gnueabihf
 ```
