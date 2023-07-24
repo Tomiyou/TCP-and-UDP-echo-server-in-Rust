@@ -34,6 +34,8 @@ fn write_server(mut connection: TcpStream) -> Result<(), std::io::Error> {
 
     let mut user_text = String::new();
     stdin.read_line(&mut user_text).unwrap();
+    user_text.truncate(1023);
+    user_text.push('\n');
 
     println!("Press ENTER to send text to server");
 

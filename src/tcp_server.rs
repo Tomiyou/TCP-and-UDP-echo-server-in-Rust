@@ -60,6 +60,8 @@ fn main() {
     print!("Input some text to send: ");
     stdout.flush().unwrap();
     stdin.read_line(&mut user_text).unwrap();
+    user_text.truncate(1023);
+    user_text.push('\n');
 
     println!("Press ENTER to send text to client");
 
