@@ -3,6 +3,7 @@ use std::net::{TcpStream};
 use std::io::{Write, stdin, stdout, Read};
 use std::str::from_utf8;
 use std::thread;
+use std::process::exit;
 
 #[derive(Parser)]
 struct Arguments {
@@ -18,7 +19,8 @@ fn read_server(mut connection: TcpStream) -> Result<(), std::io::Error> {
         if bytes_read > 0 {
             println!("Client data: {}", from_utf8(&client_data).unwrap());
         } else {
-            return Ok(())
+            println!("Server closed the connection");
+            exit(0);
         }
     }
 }
@@ -32,6 +34,8 @@ fn write_server(mut connection: TcpStream) -> Result<(), std::io::Error> {
 
     let mut user_text = String::new();
     stdin.read_line(&mut user_text).unwrap();
+
+    println!("Press ENTER to send text to server");
 
     let mut unused_input = String::new();
     loop {
@@ -56,15 +60,14 @@ fn main() {
     let write_conn = connection;
 
     let read_thread = thread::spawn(move|| {
-        read_server(read_conn).unwrap_err()
+        read_server(read_conn).expect("Reading data from client failed")
     });
 
     let write_thread = thread::spawn(move|| {
-        write_server(write_conn).unwrap_err()
+        write_server(write_conn).expect("Writing data to client failed")
     });
 
-    let read_exit = read_thread.join().unwrap();
-    let write_exit = write_thread.join().unwrap();
-
-    println!("Closed connection to server {} ({} | {})", args.host_address, read_exit, write_exit);
+    read_thread.join().unwrap();
+    write_thread.join().unwrap();
+    println!("Closed connection to server {}", args.host_address);
 }

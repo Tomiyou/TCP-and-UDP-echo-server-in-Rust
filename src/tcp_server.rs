@@ -1,5 +1,7 @@
 use clap::Parser;
 use std::str::from_utf8;
+use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc;
 use std::thread;
 use std::net::{TcpListener, TcpStream};
 use std::io::{Write, Read, stdin, stdout};
@@ -11,7 +13,12 @@ struct Arguments {
     bind_address: String,
 }
 
-fn read_client(mut connection: TcpStream) -> Result<(), std::io::Error> {
+enum Message {
+    ReceivedData,
+    ConnectionClosed,
+}
+
+fn read_client(mut connection: TcpStream, tx: Sender<Message>) -> Result<(), std::io::Error> {
     let mut client_data = [0 as u8; 1024];
 
     loop {
@@ -19,34 +26,59 @@ fn read_client(mut connection: TcpStream) -> Result<(), std::io::Error> {
         if bytes_read > 0 {
             println!("Client data: {}", from_utf8(&client_data).unwrap());
         } else {
+            tx.send(Message::ConnectionClosed).unwrap();
             return Ok(())
         }
     }
 }
 
-fn write_client(mut connection: TcpStream) -> Result<(), std::io::Error> {
-    let stdin = stdin();
-    let mut stdout = stdout();
+fn write_client(mut connection: TcpStream, rx: &Receiver<Message>, user_text: &String) -> Result<(), std::io::Error> {
+    let data = user_text.as_bytes();
 
-    print!("Input some text to send: ");
-    stdout.flush().unwrap();
-
-    let mut user_text = String::new();
-    stdin.read_line(&mut user_text).unwrap();
-
-    let mut unused_input = String::new();
     loop {
-        // Wait for enter press
-        stdin.read_line(&mut unused_input).unwrap();
+        let msg = rx.recv().unwrap();
+        if let Message::ConnectionClosed = msg {
+            return Ok(())
+        }
 
         // Write TCP stream
-        connection.write(user_text.as_bytes())?;
+        connection.write(data)?;
     }
 }
 
 fn main() {
     // Parse arguments
     let args = Arguments::parse();
+
+    let (tx, rx): (Sender<Message>, Receiver<Message>) = mpsc::channel();
+
+    // Get user input
+    let stdin = stdin();
+    let mut stdout = stdout();
+    let mut user_text = String::new();
+
+    print!("Input some text to send: ");
+    stdout.flush().unwrap();
+    stdin.read_line(&mut user_text).unwrap();
+
+    println!("Press ENTER to send text to client");
+
+    // Spawn thread which listens for user input
+    let input_tx = tx.clone();
+    thread::spawn(move || {
+        let mut unused_input = String::new();
+
+        loop {
+            // Wait for enter press
+            stdin.read_line(&mut unused_input).unwrap();
+            unused_input.clear();
+
+            // Notify sending thread using channel
+            if let Err(_) = input_tx.send(Message::ReceivedData) {
+                return
+            }
+        }
+    });
 
     // Start TCP server
     let listener = TcpListener::bind(&args.bind_address).unwrap();
@@ -63,22 +95,19 @@ fn main() {
                 // Set timeout
                 connection.set_read_timeout(Some(Duration::new(120, 0))).unwrap();
 
-                // Create separate read/write handles
+                // Create separate read thread
                 let read_conn = connection.try_clone().unwrap();
-                let write_conn = connection;
-
-                let read_thread = thread::spawn(move|| {
-                    read_client(read_conn).unwrap_err()
+                let read_tx = tx.clone();
+                let read_thread = thread::spawn(move || {
+                    read_client(read_conn, read_tx).expect("Reading data from client panicked")
                 });
 
-                let write_thread = thread::spawn(move|| {
-                    write_client(write_conn).unwrap_err()
-                });
+                // Write to client on main thread
+                write_client(connection, &rx, &user_text).expect("Writing data to client panicked");
 
-                let read_exit = read_thread.join().unwrap();
-                let write_exit = write_thread.join().unwrap();
+                read_thread.join().unwrap();
 
-                println!("Closed connection to client {} ({} | {})", client_addr, read_exit, write_exit);
+                println!("Client {} closed the connection", client_addr);
             }
             Err(e) => {
                 // Connection failed
