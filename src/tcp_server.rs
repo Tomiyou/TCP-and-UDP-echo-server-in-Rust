@@ -6,7 +6,6 @@ use std::thread;
 use std::error;
 use std::net::{TcpListener, TcpStream};
 use std::io::{Write, Read, stdin, stdout};
-use std::time::Duration;
 
 type DynResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
@@ -99,7 +98,7 @@ fn main() {
                 println!("New connection from {}", client_addr);
 
                 // Set timeout
-                connection.set_read_timeout(Some(Duration::new(120, 0))).unwrap();
+                connection.set_read_timeout(None).unwrap();
 
                 // Create separate read thread
                 let read_conn = connection.try_clone().unwrap();
