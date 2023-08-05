@@ -1,10 +1,10 @@
 use clap::Parser;
-use std::net::{TcpStream};
-use std::io::{Write, stdin, stdout, Read};
+use std::error;
+use std::io::{stdin, stdout, Read, Write};
+use std::net::TcpStream;
+use std::process::exit;
 use std::str::from_utf8;
 use std::thread;
-use std::error;
-use std::process::exit;
 
 type DynResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
@@ -65,13 +65,13 @@ fn main() {
     let read_conn = connection.try_clone().unwrap();
     let write_conn = connection;
 
-    let read_thread = thread::spawn(move|| {
+    let read_thread = thread::spawn(move || {
         if let Err(err) = read_server(read_conn) {
             println!("Error reading from server: {}", err);
         }
     });
 
-    let write_thread = thread::spawn(move|| {
+    let write_thread = thread::spawn(move || {
         if let Err(err) = write_server(write_conn) {
             println!("Error writing to server: {}", err);
         }

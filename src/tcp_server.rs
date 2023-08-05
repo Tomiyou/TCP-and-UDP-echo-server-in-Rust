@@ -1,11 +1,11 @@
 use clap::Parser;
-use std::str::from_utf8;
-use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc;
-use std::thread;
 use std::error;
+use std::io::{stdin, stdout, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::io::{Write, Read, stdin, stdout};
+use std::str::from_utf8;
+use std::sync::mpsc;
+use std::sync::mpsc::{Receiver, Sender};
+use std::thread;
 
 type DynResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
@@ -27,7 +27,7 @@ fn read_client(mut connection: TcpStream) -> DynResult<()> {
         let bytes_read = connection.read(&mut client_data)?;
         if bytes_read == 0 {
             // Client closed the connection
-            return Ok(())
+            return Ok(());
         }
 
         let client_data = from_utf8(&client_data)?;
@@ -35,13 +35,17 @@ fn read_client(mut connection: TcpStream) -> DynResult<()> {
     }
 }
 
-fn write_client(mut connection: TcpStream, rx: &Receiver<Message>, user_text: &String) -> DynResult<()> {
+fn write_client(
+    mut connection: TcpStream,
+    rx: &Receiver<Message>,
+    user_text: &String,
+) -> DynResult<()> {
     let data = user_text.as_bytes();
 
     loop {
         let msg = rx.recv()?;
         if let Message::ConnectionClosed = msg {
-            return Ok(())
+            return Ok(());
         }
 
         // Write TCP stream
@@ -80,7 +84,7 @@ fn main() {
 
             // Notify sending thread using channel
             if let Err(_) = input_tx.send(Message::ReceivedData) {
-                return
+                return;
             }
         }
     });

@@ -47,9 +47,7 @@ fn main() -> std::io::Result<()> {
 
         // Write TCP stream
         for _ in 0..send_count {
-            socket
-                .send_to(user_input, &host_address)
-                .unwrap();
+            socket.send_to(user_input, &host_address).unwrap();
         }
     }
 }
