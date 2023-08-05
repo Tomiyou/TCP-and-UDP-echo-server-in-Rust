@@ -6,12 +6,19 @@ use std::process::exit;
 use std::str::from_utf8;
 use std::thread;
 
+extern crate time;
+
 type DynResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 #[derive(Parser)]
 struct Arguments {
     /// Address of the server [address:port]
     host_address: String,
+}
+
+fn get_time() -> (u8, u8, u8, u16) {
+    let current_time = time::OffsetDateTime::now_utc();
+    (current_time.hour(), current_time.minute(), current_time.second(), current_time.millisecond())
 }
 
 fn read_server(mut connection: TcpStream) -> DynResult<()> {
@@ -25,7 +32,8 @@ fn read_server(mut connection: TcpStream) -> DynResult<()> {
         }
 
         let server_data = from_utf8(&client_data)?;
-        println!("Server data: {}", server_data);
+        let (hours, mins, secs, milis) = get_time();
+        println!("{}:{}:{}.{} - Server data: {}", hours, mins, secs, milis, server_data);
     }
 }
 

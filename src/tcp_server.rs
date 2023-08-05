@@ -7,6 +7,8 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
+extern crate time;
+
 type DynResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 #[derive(Parser)]
@@ -20,6 +22,11 @@ enum Message {
     ConnectionClosed,
 }
 
+fn get_time() -> (u8, u8, u8, u16) {
+    let current_time = time::OffsetDateTime::now_utc();
+    (current_time.hour(), current_time.minute(), current_time.second(), current_time.millisecond())
+}
+
 fn read_client(mut connection: TcpStream) -> DynResult<()> {
     let mut client_data = [0 as u8; 1024];
 
@@ -31,7 +38,8 @@ fn read_client(mut connection: TcpStream) -> DynResult<()> {
         }
 
         let client_data = from_utf8(&client_data)?;
-        println!("Client data: {}", client_data);
+        let (hours, mins, secs, milis) = get_time();
+        println!("{}:{}:{}.{} - Client data: {}", hours, mins, secs, milis, client_data);
     }
 }
 
