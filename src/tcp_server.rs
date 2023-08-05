@@ -21,13 +21,13 @@ enum Message {
     ConnectionClosed,
 }
 
-fn read_client(mut connection: TcpStream, tx: Sender<Message>) -> DynResult<()> {
+fn read_client(mut connection: TcpStream) -> DynResult<()> {
     let mut client_data = [0 as u8; 1024];
 
     loop {
         let bytes_read = connection.read(&mut client_data)?;
         if bytes_read == 0 {
-            tx.send(Message::ConnectionClosed)?;
+            // Client closed the connection
             return Ok(())
         }
 
@@ -105,9 +105,12 @@ fn main() {
                 let read_conn = connection.try_clone().unwrap();
                 let read_tx = tx.clone();
                 let read_thread = thread::spawn(move || {
-                    if let Err(err) = read_client(read_conn, read_tx) {
+                    if let Err(err) = read_client(read_conn) {
                         println!("Error reading client data: {}", err);
                     }
+
+                    // Let the sending thread know reading has finished
+                    read_tx.send(Message::ConnectionClosed).unwrap();
                 });
 
                 // Write to client on main thread
