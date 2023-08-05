@@ -13,8 +13,8 @@ cargo install cross
 2. Build binaries
 ```
 # Compile for x86_64
-cross build --release --target x86_64-unknown-linux-gnu
+cargo build --release --target x86_64-unknown-linux-musl
 
-# Cross-compile to armv7
-cross build --release --target armv7-unknown-linux-gnueabihf
+# Cross-compile to armv7 (Raspbery PI)
+cross build --release --target armv7-unknown-linux-musleabihf
 ```
