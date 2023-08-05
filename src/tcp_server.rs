@@ -3,9 +3,12 @@ use std::str::from_utf8;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc;
 use std::thread;
+use std::error;
 use std::net::{TcpListener, TcpStream};
 use std::io::{Write, Read, stdin, stdout};
 use std::time::Duration;
+
+type DynResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 #[derive(Parser)]
 struct Arguments {
@@ -18,25 +21,26 @@ enum Message {
     ConnectionClosed,
 }
 
-fn read_client(mut connection: TcpStream, tx: Sender<Message>) -> Result<(), std::io::Error> {
+fn read_client(mut connection: TcpStream, tx: Sender<Message>) -> DynResult<()> {
     let mut client_data = [0 as u8; 1024];
 
     loop {
         let bytes_read = connection.read(&mut client_data)?;
-        if bytes_read > 0 {
-            println!("Client data: {}", from_utf8(&client_data).unwrap());
-        } else {
-            tx.send(Message::ConnectionClosed).unwrap();
+        if bytes_read == 0 {
+            tx.send(Message::ConnectionClosed)?;
             return Ok(())
         }
+
+        let client_data = from_utf8(&client_data)?;
+        println!("Client data: {}", client_data);
     }
 }
 
-fn write_client(mut connection: TcpStream, rx: &Receiver<Message>, user_text: &String) -> Result<(), std::io::Error> {
+fn write_client(mut connection: TcpStream, rx: &Receiver<Message>, user_text: &String) -> DynResult<()> {
     let data = user_text.as_bytes();
 
     loop {
-        let msg = rx.recv().unwrap();
+        let msg = rx.recv()?;
         if let Message::ConnectionClosed = msg {
             return Ok(())
         }
@@ -101,11 +105,15 @@ fn main() {
                 let read_conn = connection.try_clone().unwrap();
                 let read_tx = tx.clone();
                 let read_thread = thread::spawn(move || {
-                    read_client(read_conn, read_tx).expect("Reading data from client panicked")
+                    if let Err(err) = read_client(read_conn, read_tx) {
+                        println!("Error reading client data: {}", err);
+                    }
                 });
 
                 // Write to client on main thread
-                write_client(connection, &rx, &user_text).expect("Writing data to client panicked");
+                if let Err(err) = write_client(connection, &rx, &user_text) {
+                    println!("Error writing to client: {}", err);
+                }
 
                 read_thread.join().unwrap();
 

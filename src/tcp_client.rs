@@ -3,7 +3,10 @@ use std::net::{TcpStream};
 use std::io::{Write, stdin, stdout, Read};
 use std::str::from_utf8;
 use std::thread;
+use std::error;
 use std::process::exit;
+
+type DynResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 #[derive(Parser)]
 struct Arguments {
@@ -11,17 +14,18 @@ struct Arguments {
     host_address: String,
 }
 
-fn read_server(mut connection: TcpStream) -> Result<(), std::io::Error> {
+fn read_server(mut connection: TcpStream) -> DynResult<()> {
     let mut client_data = [0 as u8; 1024];
 
     loop {
         let bytes_read = connection.read(&mut client_data)?;
-        if bytes_read > 0 {
-            println!("Client data: {}", from_utf8(&client_data).unwrap());
-        } else {
+        if bytes_read == 0 {
             println!("Server closed the connection");
             exit(0);
         }
+
+        let server_data = from_utf8(&client_data)?;
+        println!("Server data: {}", server_data);
     }
 }
 
@@ -62,11 +66,15 @@ fn main() {
     let write_conn = connection;
 
     let read_thread = thread::spawn(move|| {
-        read_server(read_conn).expect("Reading data from client failed")
+        if let Err(err) = read_server(read_conn) {
+            println!("Error reading from server: {}", err);
+        }
     });
 
     let write_thread = thread::spawn(move|| {
-        write_server(write_conn).expect("Writing data to client failed")
+        if let Err(err) = write_server(write_conn) {
+            println!("Error writing to server: {}", err);
+        }
     });
 
     read_thread.join().unwrap();
