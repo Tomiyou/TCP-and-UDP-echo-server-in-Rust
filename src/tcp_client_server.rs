@@ -44,7 +44,7 @@ fn main() {
     let stdin = stdin();
 
     // Get user input
-    let user_text = get_user_text(&stdin);
+    let user_text = get_user_text(&stdin, is_server);
 
     // Spawn thread which listens for user input
     let write_thread_tx = tx.clone();
@@ -189,17 +189,22 @@ fn get_time() -> (u8, u8, u8, u16) {
     )
 }
 
-fn get_user_text(stdin: &Stdin) -> String {
+fn get_user_text(stdin: &Stdin, is_server: bool) -> String {
     let mut stdout = stdout();
     let mut user_text = String::new();
+    let default_text = if is_server { "server" } else { "client" };
 
-    print!("Input some text to send: ");
+    print!("Input some text to send (default \"{}\"): ", default_text);
     stdout.flush().unwrap();
 
     // Read a max 1024 character long string
     stdin.read_line(&mut user_text).unwrap();
     let mut user_text = user_text.replace('\n', "");
     user_text.truncate(100);
-    user_text.push('\n');
-    user_text
+
+    if user_text.is_empty() {
+        default_text.to_string()
+    } else {
+        user_text
+    }
 }
