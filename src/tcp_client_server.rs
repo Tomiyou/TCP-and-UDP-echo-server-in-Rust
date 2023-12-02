@@ -96,8 +96,6 @@ fn main() {
             .parse()
             .expect("Bad server address given, expected \"--client ip_addres:port\"");
 
-        println!("Press ENTER to send text to client");
-
         // Connect to server
         let connection = TcpStream::connect(&server_address).unwrap();
         start_tcp_stream(connection, tx, &rx, &user_text, is_server);
@@ -118,6 +116,7 @@ fn start_tcp_stream(
     } else {
         println!("Successfully connected to server {}", peer_address);
     }
+    println!("Press ENTER to send text to peer");
 
     // Set timeout (None means the connection never times out)
     connection.set_read_timeout(None).unwrap();
