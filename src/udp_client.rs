@@ -1,6 +1,9 @@
 use clap::Parser;
 use std::io::{stdin, stdout, Write};
 use std::net::{UdpSocket, SocketAddr};
+use std::process::exit;
+use std::str::from_utf8;
+use std::thread;
 
 #[derive(Parser)]
 struct Arguments {
@@ -38,10 +41,25 @@ fn main() -> std::io::Result<()> {
     stdin.read_line(&mut user_input).unwrap();
     let user_input = user_input.as_bytes();
 
+    let recv_socket = socket.try_clone().unwrap();
+    thread::spawn(move || {
+        let mut buf = [0 as u8; 1024];
+        loop {
+            let bytes = recv_socket.recv(&mut buf).unwrap();
+            if bytes == 0 {
+                println!("Recevied 0 bytes!");
+                exit(0);
+            }
+
+            let text = from_utf8(&buf).unwrap();
+            println!("Received from peer: {}", text);
+        }
+    });
+
     loop {
         // Read how many times to send
         let mut send_count = String::new();
-        print!("How many times to send: ");
+        print!("Enter how many packets to send: ");
         stdout.flush().unwrap();
 
         stdin.read_line(&mut send_count).unwrap();
