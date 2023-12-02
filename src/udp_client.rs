@@ -1,6 +1,6 @@
 use clap::Parser;
-use std::io::{stdin, stdout, Write, Stdin};
-use std::net::{UdpSocket, SocketAddr};
+use std::io::{stdin, stdout, Stdin, Write};
+use std::net::{SocketAddr, UdpSocket};
 use std::process::exit;
 use std::str::from_utf8;
 use std::sync::atomic::AtomicBool;
@@ -29,7 +29,8 @@ fn main() -> std::io::Result<()> {
     args.bind_port.parse::<u16>().expect("Bad bind port given");
 
     // Check peer address is valid
-    let peer_address: SocketAddr = args.peer_address
+    let peer_address: SocketAddr = args
+        .peer_address
         .parse()
         .expect("Bad peer address given, expected \"ip_addres:port\"");
 
