@@ -1,7 +1,7 @@
 use clap::{ArgGroup, Parser};
 use std::error;
 use std::io::{stdin, stdout, Read, Write, Stdin};
-use std::net::{TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream, SocketAddr};
 use std::process::exit;
 use std::str::from_utf8;
 use std::sync::mpsc;
@@ -65,6 +65,11 @@ fn main() {
 
     // Start server if --server argument is given
     if let Some(bind_address) = args.server {
+        // Check bind address
+        let bind_address: SocketAddr = bind_address
+            .parse()
+            .expect("Bad server bind address given, expected \"--server ip_addres:port\"");
+
         // Start TCP server
         let listener = TcpListener::bind(&bind_address).unwrap();
 
@@ -86,6 +91,11 @@ fn main() {
     }
     // Start client if --client argument is given
     else if let Some(server_address) = args.client {
+        // Check bind address
+        let server_address: SocketAddr = server_address
+            .parse()
+            .expect("Bad server address given, expected \"--client ip_addres:port\"");
+
         println!("Press ENTER to send text to client");
 
         // Connect to server
