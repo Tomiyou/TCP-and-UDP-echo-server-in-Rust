@@ -3,6 +3,7 @@ use std::io::{stdin, stdout, Write, Stdin};
 use std::net::{UdpSocket, SocketAddr};
 use std::process::exit;
 use std::str::from_utf8;
+use std::sync::atomic::AtomicBool;
 use std::thread;
 
 #[derive(Parser)]
@@ -13,6 +14,9 @@ struct Arguments {
     /// Address of the other client [address:port]
     peer_address: String,
 }
+
+// Atomic newline indicator
+static IS_NEWLINE: AtomicBool = AtomicBool::new(true);
 
 fn main() -> std::io::Result<()> {
     // Parse arguments
@@ -38,6 +42,7 @@ fn main() -> std::io::Result<()> {
     let user_input = get_user_text(&stdin, args.bind_port);
     let user_input = user_input.as_bytes();
 
+    // Spawn receiving thread
     let recv_socket = socket.try_clone().unwrap();
     thread::spawn(move || {
         let mut buf = [0 as u8; 1024];
@@ -49,7 +54,11 @@ fn main() -> std::io::Result<()> {
             }
 
             let text = from_utf8(&buf).unwrap();
-            println!("Received from peer: {}", text);
+            if IS_NEWLINE.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                println!("Received from peer: {}", text);
+            } else {
+                println!("\nReceived from peer: {}", text);
+            }
         }
     });
 
@@ -57,9 +66,12 @@ fn main() -> std::io::Result<()> {
         // Read how many times to send
         let mut send_count = String::new();
         print!("Enter how many packets to send (default 1): ");
+        IS_NEWLINE.swap(false, std::sync::atomic::Ordering::Relaxed);
         stdout.flush().unwrap();
 
         stdin.read_line(&mut send_count).unwrap();
+        IS_NEWLINE.swap(true, std::sync::atomic::Ordering::Relaxed);
+
         send_count.pop();
         let send_count: u32 = send_count.parse().unwrap_or(1);
         println!("Sending {} packets", send_count);
