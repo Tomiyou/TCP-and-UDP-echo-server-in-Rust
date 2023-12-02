@@ -1,8 +1,7 @@
 use clap::{ArgGroup, Parser};
 use std::error;
-use std::io::{stdin, stdout, Read, Write, Stdin};
-use std::net::{TcpListener, TcpStream, SocketAddr};
-use std::process::exit;
+use std::io::{stdin, stdout, Read, Stdin, Write};
+use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::str::from_utf8;
 use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender};
@@ -139,7 +138,11 @@ fn start_tcp_stream(
 
     read_thread.join().unwrap();
 
-    println!("{} {} closed the connection", if is_server { "Server" } else { "Client" }, peer_address);
+    println!(
+        "{} {} closed the connection",
+        if is_server { "Server" } else { "Client" },
+        peer_address
+    );
 }
 
 fn read_tcp_stream(mut connection: TcpStream) -> DynResult<()> {
