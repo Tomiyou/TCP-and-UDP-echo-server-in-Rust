@@ -1,0 +1,55 @@
+name: build and release
+
+on:
+  release:
+    types: [ created ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.platform.target_device }} with rust ${{ matrix.toolchain }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - target_device: Raspberry PI
+            os: ubuntu-20.04
+            target: armv7-unknown-linux-musleabihf
+            suffix: armv7hf
+          - target_device: Linux x64
+            os: ubuntu-20.04
+            target: x86_64-unknown-linux-musl
+            suffix: x86_64
+        toolchain:
+          - stable
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build binary
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: "build"
+          target: ${{ matrix.platform.target }}
+          toolchain: ${{ matrix.toolchain }}
+          args: "--locked --release --bins"
+          strip: true
+      - name: Check build dir
+        run: ls target/${{ matrix.platform.target }}/release/
+      - name: Rename binary (linux and macos)
+        run: |
+          mv target/${{ matrix.platform.target }}/release/tcp_client_server target/${{ matrix.platform.target }}/release/tcp_client_server_${{ matrix.platform.suffix }}
+          mv target/${{ matrix.platform.target }}/release/udp_client target/${{ matrix.platform.target }}/release/udp_client_${{ matrix.platform.suffix }}
+      - name: Generate SHA-256
+        run: |
+          shasum -a 256 target/${{ matrix.platform.target }}/release/tcp_client_server_${{ matrix.platform.suffix }} | cut -d ' ' -f 1 > target/${{ matrix.platform.target }}/release/tcp_client_server_${{ matrix.platform.suffix }}.sha256
+          shasum -a 256 target/${{ matrix.platform.target }}/release/udp_client_${{ matrix.platform.suffix }} | cut -d ' ' -f 1 > target/${{ matrix.platform.target }}/release/udp_client_${{ matrix.platform.suffix }}.sha256
+      - name: Release binary and SHA-256 checksum to GitHub
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/${{ matrix.platform.target }}/release/tcp_client_server_${{ matrix.platform.suffix }}
+            target/${{ matrix.platform.target }}/release/tcp_client_server_${{ matrix.platform.suffix }}.sha256
+            target/${{ matrix.platform.target }}/release/udp_client_${{ matrix.platform.suffix }}
+            target/${{ matrix.platform.target }}/release/udp_client_${{ matrix.platform.suffix }}.sha256
