@@ -1,5 +1,5 @@
-# TCP echo server written in Rust
-Client sends user input of up to 1024 bytes to the server, which responds with an echo.
+# TCP and UDP text client/server
+A simple implementation of TCP/UDP client and server, where both can send and receive user entered text. Used for debugging Linux network stack.
 
 ## Compilation
 
