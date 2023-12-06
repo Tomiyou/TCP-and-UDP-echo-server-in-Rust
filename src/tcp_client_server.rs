@@ -155,12 +155,14 @@ fn read_tcp_stream(mut connection: TcpStream) -> DynResult<()> {
             return Ok(());
         }
 
-        let client_data = from_utf8(&client_data)?;
-        let (hours, mins, secs, milis) = get_time();
-        println!(
-            "{}:{}:{}.{} - Client data: {}",
-            hours, mins, secs, milis, client_data
-        );
+        let client_data = from_utf8(&client_data);
+        if let Ok(client_data) = client_data {
+            let (hours, mins, secs, milis) = get_time();
+            println!(
+                "{}:{}:{}.{} - Client data: {}",
+                hours, mins, secs, milis, client_data
+            );
+        }
     }
 }
 

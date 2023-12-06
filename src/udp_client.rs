@@ -54,11 +54,14 @@ fn main() -> std::io::Result<()> {
                 exit(0);
             }
 
-            let text = from_utf8(&buf).unwrap();
-            if IS_NEWLINE.swap(true, std::sync::atomic::Ordering::Relaxed) {
-                println!("Received from peer: {}", text);
-            } else {
-                println!("\nReceived from peer: {}", text);
+            let data = from_utf8(&buf);
+            if let Ok(text) = data {
+                let (hours, mins, secs, milis) = get_time();
+                if IS_NEWLINE.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                    println!("{}:{}:{}.{} - Received from peer: {}", hours, mins, secs, milis, text);
+                } else {
+                    println!("\n{}:{}:{}.{} - Received from peer: {}", hours, mins, secs, milis, text);
+                }
             }
         }
     });
@@ -82,6 +85,16 @@ fn main() -> std::io::Result<()> {
             socket.send_to(user_input, &peer_address).unwrap();
         }
     }
+}
+
+fn get_time() -> (u8, u8, u8, u16) {
+    let current_time = time::OffsetDateTime::now_utc();
+    (
+        current_time.hour(),
+        current_time.minute(),
+        current_time.second(),
+        current_time.millisecond(),
+    )
 }
 
 fn get_user_text(stdin: &Stdin, bind_port: String) -> String {
