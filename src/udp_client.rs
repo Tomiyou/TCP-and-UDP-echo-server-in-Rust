@@ -47,7 +47,7 @@ fn main() -> std::io::Result<()> {
     // Spawn receiving thread
     let recv_socket = socket.try_clone().unwrap();
     thread::spawn(move || {
-        let mut buf = [0 as u8; 1024];
+        let mut buf = [0 as u8; 4096];
         loop {
             let bytes = recv_socket.recv(&mut buf).unwrap();
             if bytes == 0 {
@@ -55,7 +55,7 @@ fn main() -> std::io::Result<()> {
                 exit(0);
             }
 
-            let data = from_utf8(&buf);
+            let data = from_utf8(&buf[..bytes]);
             if let Ok(text) = data {
                 let (hours, mins, secs, milis) = get_time();
                 if IS_NEWLINE.swap(true, std::sync::atomic::Ordering::Relaxed) {

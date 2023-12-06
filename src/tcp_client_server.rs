@@ -146,7 +146,7 @@ fn start_tcp_stream(
 }
 
 fn read_tcp_stream(mut connection: TcpStream) -> DynResult<()> {
-    let mut client_data = [0 as u8; 1024];
+    let mut client_data = [0 as u8; 4096];
 
     loop {
         let bytes_read = connection.read(&mut client_data)?;
@@ -155,8 +155,8 @@ fn read_tcp_stream(mut connection: TcpStream) -> DynResult<()> {
             return Ok(());
         }
 
-        let client_data = from_utf8(&client_data);
-        if let Ok(client_data) = client_data {
+        let data = from_utf8(&client_data[..bytes_read]);
+        if let Ok(client_data) = data {
             let (hours, mins, secs, milis) = get_time();
             println!(
                 "{}:{}:{}.{} - Client data: {}",
