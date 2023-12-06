@@ -8,8 +8,8 @@ use std::thread;
 
 #[derive(Parser)]
 struct Arguments {
-    /// Port to bind locally
-    bind_port: String,
+    /// Address to bind locally
+    bind_address: String,
 
     /// Address of the other client [address:port]
     peer_address: String,
@@ -25,22 +25,23 @@ fn main() -> std::io::Result<()> {
     let stdin = stdin();
     let mut stdout = stdout();
 
-    // Check bind port is valid
-    args.bind_port.parse::<u16>().expect("Bad bind port given");
-
     // Check peer address is valid
     let peer_address: SocketAddr = args
         .peer_address
         .parse()
         .expect("Bad peer address given, expected \"ip_addres:port\"");
 
+    // Check bind address is valid
+    let bind_address: SocketAddr = args
+        .bind_address
+        .parse()
+        .expect("Bad bind address given, expected \"ip_addres:port\"");
+
     // Bind to local address:port
-    let mut bind_address = "[::]:".to_string();
-    bind_address.push_str(&args.bind_port);
     let socket = UdpSocket::bind(bind_address)?;
 
     // Get user input
-    let user_input = get_user_text(&stdin, args.bind_port);
+    let user_input = get_user_text(&stdin, bind_address.port().to_string());
     let user_input = user_input.as_bytes();
 
     // Spawn receiving thread
